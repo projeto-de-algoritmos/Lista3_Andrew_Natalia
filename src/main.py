@@ -32,6 +32,9 @@ class Heap:
         self.nodes[j] = aux
     
     def heapify(self, i):
+        if(self.limit <= 1):
+            return
+
         l = self.left(i)
         r = self.right(i)
 
@@ -57,22 +60,18 @@ class Heap:
 
     def add(self, node):
         self.nodes.append(node)
-
-        if(self.limit > 0):
-            self.shift_up(self.limit + 1)
-
         self.limit += 1
+        self.shift_up(self.limit)
 
     def remove(self):
         node = None
         if(self.limit > 0):
-            node = self.nodes[self.limit]
-
             if(self.limit > 1):
                 self.swap(1, self.limit)
-                self.heapify(1)
-
+            
+            node = self.nodes.pop()
             self.limit -= 1
+            self.heapify(1)
 
         return node
 
@@ -84,6 +83,7 @@ class HuffmanCoding:
         self.frequency = {}
         self.heap = Heap()
         self.codes = {}
+        self.reverse_codes = {}
     
     def count_frequency(self):
         for char in self.word:
@@ -101,31 +101,38 @@ class HuffmanCoding:
             node1 = self.heap.remove()
             node2 = self.heap.remove()
 
-            value1 = 0
-            value2 = 0
-
-            if(node1 is not None):
-                value1 = node1.value
-            if(node2 is not None):
-                value2 = node2.value
-
-            merged = HeapNode('+', value1 + value2)
+            merged = HeapNode(None, node1.value + node2.value)
             merged.left = node1
             merged.right = node2
 
             self.heap.add(merged)
 
-            print(self.heap.nodes[self.heap.limit].value)
+    def set_codes_util(self, node, code):
+        if(node is None):
+            return
+        
+        if(node.key is not None):
+            self.codes[node.key] = code
+            self.reverse_codes[code] = node.key
+            return
+
+        self.set_codes_util(node.left, code + "0")
+        self.set_codes_util(node.right, code + "1")
+
+    def set_codes(self):
+        self.set_codes_util(self.heap.root(), "")
 
     def test(self):
         self.count_frequency()
         self.build_heap()
         self.merge_nodes()
+        self.set_codes()
+
         # for i in range(self.heap.limit + 1):
-        #     print(self.heap.nodes[i].value)
+        #     print(self.heap.nodes[i].key + str(self.heap.nodes[i].value))
 
 
 if __name__ == "__main__":
-    test = HuffmanCoding("banana")
+    test = HuffmanCoding("teste")
     test.test()
     
