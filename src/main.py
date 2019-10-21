@@ -1,3 +1,7 @@
+import igraph
+from igraph import Graph, EdgeSeq
+import plotly.graph_objects as go
+
 class HeapNode:
     def __init__(self, key, value):
         self.key = key
@@ -72,6 +76,133 @@ class Heap:
 
         return node
 
+class TreePlot:
+
+    def __init__(self, tree):
+        self.tree = tree
+        self.nodes_quantity = 0
+        self.labels = ""
+
+        self.set_nodes_quantity(self.tree)
+        self.set_labels()
+
+        # self.nodes_quantity -= 4
+        # self.labels = self.labels[:self.nodes_quantity]
+
+        self.set_tree()
+        self.set_figure()
+        self.plot_figure()
+
+    def set_nodes_quantity(self, node):
+        self.nodes_quantity += 1
+
+        if(node is None):
+            return
+
+        self.set_nodes_quantity(node.left)
+        self.set_nodes_quantity(node.right)
+
+    def set_labels(self): 
+        q = [] 
+        q.append(self.tree) 
+            
+        while q: 
+            count = len(q) 
+ 
+            while count > 0: 
+                temp = q.pop(0)
+                if(temp is None):
+                    self.labels += '~'
+                elif(temp.key == "DAD"):
+                    self.labels += "+"
+                else: 
+                    self.labels += temp.key
+
+                if temp:
+                    q.append(temp.left)
+                    q.append(temp.right)
+    
+                count -= 1
+
+    def set_tree(self):
+        G = Graph.Tree(self.nodes_quantity, 2) # 2 stands for children number
+        lay = G.layout('rt',  root=(0,0))
+
+        self.position = {k: lay[k] for k in range(self.nodes_quantity)}
+        self.Y = [lay[k][1] for k in range(self.nodes_quantity)]
+        self.M = max(self.Y)
+
+        es = EdgeSeq(G) # sequence of edges
+        E = [e.tuple for e in G.es] # list of edges
+
+        L = len(self.position)
+        self.Xn = [self.position[k][0] for k in range(L)]
+        self.Yn = [2*self.M-self.position[k][1] for k in range(L)]
+        self.Xe = []
+        self.Ye = []
+        for edge in E:
+            self.Xe+=[self.position[edge[0]][0],self.position[edge[1]][0], None]
+            self.Ye+=[2*self.M-self.position[edge[0]][1],2*self.M-self.position[edge[1]][1], None]
+
+    def set_figure(self):
+        self.fig = go.Figure()
+        self.fig.add_trace(go.Scatter(x=self.Xe,
+                        y=self.Ye,
+                        mode='lines',
+                        line=dict(color='rgb(210,210,210)', width=1),
+                        hoverinfo='none'
+                        ))
+        self.fig.add_trace(go.Scatter(x=self.Xn,
+                        y=self.Yn,
+                        mode='markers',
+                        name='bla',
+                        marker=dict(symbol='circle-dot',
+                                        size=18, 
+                                        color='#6175c1',    #'#DB4551', 
+                                        line=dict(color='rgb(50,50,50)', width=1)
+                                        ),
+                        text=self.labels,
+                        hoverinfo='text',
+                        opacity=0.8
+                        ))
+
+    def make_annotations(self, pos, text, font_size=10, font_color='rgb(250,250,250)'):
+        print(len(pos))
+        print(len(text))
+        L=len(pos)
+        if len(text)!=L:
+            raise ValueError('The lists pos and text must have the same len')
+        annotations = []
+        for k in range(L):
+            annotations.append(
+                dict(
+                    text=self.labels[k], # or replace labels with a different list for the text within the circle  
+                    x=pos[k][0], y=2*self.M-self.position[k][1],
+                    xref='x1', yref='y1',
+                    font=dict(color=font_color, size=font_size),
+                    showarrow=False)
+            )
+        return annotations
+
+    def plot_figure(self):
+        axis = dict(showline=False, # hide axis line, grid, ticklabels and  title
+            zeroline=False,
+            showgrid=False,
+            showticklabels=False,
+            )
+
+        self.fig.update_layout(title= 'Final Heap Tree:',  
+                    annotations=self.make_annotations(self.position, self.labels),
+                    font_size=12,
+                    showlegend=False,
+                    xaxis=axis,
+                    yaxis=axis,          
+                    margin=dict(l=40, r=40, b=85, t=100),
+                    hovermode='closest',
+                    plot_bgcolor='rgb(248,248,248)'          
+                    )
+        self.fig.show()
+
 
 class HuffmanCoding:
 
@@ -98,7 +229,7 @@ class HuffmanCoding:
             node1 = self.heap.remove()
             node2 = self.heap.remove()
 
-            merged = HeapNode(None, node1.value + node2.value)
+            merged = HeapNode("DAD", node1.value + node2.value)
             merged.left = node1
             merged.right = node2
 
@@ -108,7 +239,7 @@ class HuffmanCoding:
         if(node is None):
             return
         
-        if(node.key is not None):
+        if(node.key != "DAD"):
             self.codes[node.key] = code
             return
 
@@ -133,24 +264,18 @@ class HuffmanCoding:
             elif(char == '1'):
                 node = node.right
             
-            if(node.key is not None):
+            if(node.key != "DAD"):
                 print(node.key)
                 node = self.heap.root()
 
 
-    # def print_heap(self):
-    #     key = "dad"
-    #     for node in self.heap.nodes:
-    #         if(node.key is not None):
-    #             key = node.key
-    #         print(key + "-" + str(node.value))
-
-
 if __name__ == "__main__":
-    test = HuffmanCoding("teste")
+    test = HuffmanCoding("Ana amam sua nana, sua mana e banana")
     test.encode()
 
     print(test.encoded_text)
 
     test.decode()
+
+    TreePlot(test.heap.root())
     
