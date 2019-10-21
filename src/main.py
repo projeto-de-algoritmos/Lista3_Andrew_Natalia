@@ -78,51 +78,50 @@ class Heap:
 
 class TreePlot:
 
-    def __init__(self, tree):
+    def __init__(self, tree, encoded_text):
         self.tree = tree
+        self.encoded_text = encoded_text
         self.nodes_quantity = 0
         self.labels = ""
 
-        self.set_nodes_quantity(self.tree)
+        self.set_nodes_quantity()
         self.set_labels()
-
-        # self.nodes_quantity -= 4
-        # self.labels = self.labels[:self.nodes_quantity]
-
         self.set_tree()
         self.set_figure()
         self.plot_figure()
 
-    def set_nodes_quantity(self, node):
-        self.nodes_quantity += 1
+    def get_height(self, node):
+        if node is None:
+            return 0
 
-        if(node is None):
-            return
+        return max(self.get_height(node.left), self.get_height(node.right)) + 1
 
-        self.set_nodes_quantity(node.left)
-        self.set_nodes_quantity(node.right)
+    def set_nodes_quantity(self):
+        self.height = self.get_height(self.tree)
+        self.nodes_quantity = (2 ** self.height) - 1
 
-    def set_labels(self): 
-        q = [] 
-        q.append(self.tree) 
-            
-        while q: 
-            count = len(q) 
- 
-            while count > 0: 
-                temp = q.pop(0)
-                if(temp is None):
-                    self.labels += '~'
-                elif(temp.key == "DAD"):
+    def set_labels(self):
+        queue = [self.tree]
+        while len(queue) > 0:
+            node = queue.pop(0)
+
+            if(len(self.labels) < self.nodes_quantity):
+                if(node == None):
+                    self.labels += " "
+                elif(node.key == "DAD"):
                     self.labels += "+"
-                else: 
-                    self.labels += temp.key
+                else:
+                    if(node.key == ' '):
+                        self.labels += "_"
+                    else:
+                        self.labels += node.key
 
-                if temp:
-                    q.append(temp.left)
-                    q.append(temp.right)
-    
-                count -= 1
+                if(node == None):
+                    queue.append(None)
+                    queue.append(None)
+                else:
+                    queue.append(node.left)
+                    queue.append(node.right)
 
     def set_tree(self):
         G = Graph.Tree(self.nodes_quantity, 2) # 2 stands for children number
@@ -167,8 +166,6 @@ class TreePlot:
                         ))
 
     def make_annotations(self, pos, text, font_size=10, font_color='rgb(250,250,250)'):
-        print(len(pos))
-        print(len(text))
         L=len(pos)
         if len(text)!=L:
             raise ValueError('The lists pos and text must have the same len')
@@ -191,16 +188,17 @@ class TreePlot:
             showticklabels=False,
             )
 
-        self.fig.update_layout(title= 'Final Heap Tree:',  
-                    annotations=self.make_annotations(self.position, self.labels),
-                    font_size=12,
-                    showlegend=False,
-                    xaxis=axis,
-                    yaxis=axis,          
-                    margin=dict(l=40, r=40, b=85, t=100),
-                    hovermode='closest',
-                    plot_bgcolor='rgb(248,248,248)'          
-                    )
+        self.fig.update_layout(
+            title=self.encoded_text,
+            annotations=self.make_annotations(self.position, self.labels),
+            font_size=12,
+            showlegend=False,
+            xaxis=axis,
+            yaxis=axis,          
+            margin=dict(l=40, r=40, b=85, t=100),
+            hovermode='closest',
+            plot_bgcolor='rgb(248,248,248)'          
+        )
         self.fig.show()
 
 
@@ -270,12 +268,20 @@ class HuffmanCoding:
 
 
 if __name__ == "__main__":
-    test = HuffmanCoding("Ana amam sua nana, sua mana e banana")
-    test.encode()
+    # text = "Ana amam sua nana, sua mana e banana"
+    # text = "teste"
 
-    print(test.encoded_text)
+    text = input("Insira uma palavra para ser codificada: ")
 
-    test.decode()
+    hc = HuffmanCoding(text)
+    
+    hc.encode()
 
-    TreePlot(test.heap.root())
+    print("\nDECODIFICANDO:\n")
+    hc.decode()
+    print("\nDECODIFICAÇÃO CONCLUÍDA\n")
+
+
+    print("Veja a árvore de codificação e o código de huffman da palavra inserida!\n\n")
+    TreePlot(hc.heap.root(), hc.encoded_text)
     
